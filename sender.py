@@ -15,68 +15,91 @@ def udp_receive(serverSock):
     return rcvd
 
 
-def udp_send(message, serverSock, iadr, port, isIntent = False):
+def udp_send(message, serverSock, iadr, port):
     packet = message.encode()
     serverSock.sendto(packet, (iadr, port))
 
 
-def main():
+def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f")       # Argument for file name
-    parser.add_argument("-a")       # Argument for IP address
-    parser.add_argument("-s")       # Argument for receiver port number
-    parser.add_argument("-c")       # Argument for sender port number
-    parser.add_argument("-i")       # Argument for unique ID
+    parser.add_argument("-f", help="File name")
+    parser.add_argument("-a", help="IP address")
+    parser.add_argument("-s", help="Sender port number")
+    parser.add_argument("-c", help="Receiver port number")
+    parser.add_argument("-i", help="Unique ID")
     args = parser.parse_args()
 
-    #! Set variables from args (UNCOMMENT FOR TESTING)
-    # UDP_IP_ADDRESS = args.a
-    # UDP_PORT_NO = int(args.s)
-    # uniqueID = args.i
-    # senderPort = int(args.c)
-    # fileName = args.f
+    if args.a is None:
+        args.a = "209.97.169.245"
+    if args.s is None:
+        args.s = 6789
+    if args.c is None:
+        args.c = 6789
+    if args.i is None:
+        args.i = "c3563823"
+    if args.f is None:
+        args.f = f"{args.i}.txt"
 
-    UDP_IP_ADDRESS = "209.97.169.245"
-    UDP_PORT_NO = 6789
-    uniqueID = "CS143145"
-    senderPort = 6789
-    fileName = f"{uniqueID}.txt"
+    return args
+
+
+def read_file(file_name):
+    try:
+        with open(file_name, 'r') as f:
+            return f.read()
+    except FileNotFoundError:
+        return None
+
+
+def main():
+    args = get_args()
+
+    #! Set variables from args (UNCOMMENT FOR TESTING)
+    UDP_IP_ADDRESS = args.a
+    UDP_PORT_NO = int(args.s)
+    uniqueID = args.i
+    senderPort = int(args.c)
+    fileName = args.f
 
 
     # Initialize UDP connection
-    clientSock = socket.socket(
-        socket.AF_INET,
-        socket.SOCK_DGRAM)
+    clientSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     clientSock.bind(('',senderPort))
 
 
     # Read from file named "{uniqueID}.txt" and store to message
-    message = ''
-    try:
-        with open(fileName, "r") as f:
-            message = f.read()
-    except:
-        pass
-        # print("File not found")
+    message = read_file(fileName)
 
 
+    """
+    Send Intent Message
+    """
     # Send Intent message to server
     intentMessage  =f"ID{uniqueID}"
-    udp_send(intentMessage, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO, True)
+    udp_send(intentMessage, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
     # Receive TxnID (accept message from server)
     TxnID = udp_receive(clientSock)
+    print("TxnID: " + TxnID)
 
-    # TODO - Loop this for every chunk of the packet
-    # Begin sending message 
-    sequence_number = str(0).zfill(7)
-    submessage = "YU"
-    isLast = 0
-    data = f"ID{uniqueID}SN{sequence_number}TXN{TxnID}LAST{isLast}{submessage}"
-    udp_send(data, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO, False)
 
-    #! Testing only
-    received = udp_receive(clientSock)
-    print(received)
+    """
+    Send Packets
+    """
+    increment = 100
+    for i in range(0, len(message), increment):
+        # Determine data parameters: submessage, isLast, seqNum
+        submessage = message[i:i+increment]
+        sequence_number = 0
+        isLast = 0 if len(submessage) == increment else 1
+        
+        # Begin sending message 
+        data = f"ID{uniqueID}SN{str(sequence_number).zfill(7)}TXN{TxnID}LAST{isLast}{submessage}"
+        udp_send(data, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
+        # Receive ACK
+        ack = udp_receive(clientSock)
+        print(ack)
+        sequence_number += 1
+
 
 
 
