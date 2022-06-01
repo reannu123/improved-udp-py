@@ -31,7 +31,9 @@ def get_args():
     args = parser.parse_args()
 
     if args.a is None:
-        args.a = "10.0.7.141"
+        # 209.97.169.245
+        # 10.0.7.141
+        args.a = "209.97.169.245"
     if args.s is None:
         args.s = 9000
     if args.c is None:
@@ -112,15 +114,16 @@ def main():
     """
     sequence_number = 0
     idx = 0                       # Message index
-    chunkSize = 1               # Anticipate accepted increment size
+    chunkSize = 5               # Anticipate accepted increment size
     queueSize = 1               # Anticipate queue size
     queue = 0
-
-    isProcessing = True
+    
+    iChunkSize = chunkSize
     isMeasuring = False
     increaseFlag = False
-    dataDict = {}
-    maxTimeout = 0
+    decreaseFlag = False
+    packetSizes = [1,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76]
+    packetSizeIdx = 0
     while idx < len(message):
         """
         Sending Loop
@@ -135,10 +138,11 @@ def main():
             
             # Begin sending message 
             data = f"ID{uniqueID}SN{str(sequence_number).zfill(7)}TXN{TxnID}LAST{isLast}{submessage}"
-            dataDict[sequence_number] = data
-            print(data)
+            print(f"Sqnc:\t{sequence_number}")
+            print(f"Size:\t{chunkSize}")
+            print("Packet:\t" + data)
             startTime = time()
-            udp_send(dataDict[sequence_number], clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
+            udp_send(data, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
             queue+=1
             idx+=chunkSize
             sequence_number += 1
@@ -150,42 +154,60 @@ def main():
         received = 0
         receiveSize = queueSize
         while received < receiveSize:
-            fail = False
             # Receiving Loop
             while(True):
                 try:
                     ack = udp_receive(clientSock)
                     endTime = time()
-                    if isProcessing:
-                        
-                        isProcessing = False
+
+                    """ 
+                    Experimental packet: 
+                        -begin measuring
+                        -set timeout from experiment
+                        -set Chunksize to default
+                        -set queue size to default
+                    """
+                    if sequence_number == 1:
                         isMeasuring = True
                         clientSock.settimeout(endTime-startTime+1)
+                        iChunkSize = chunkSize
                         chunkSize = 30
                         queueSize = 1
                         print(f"Time elapsed: {endTime-startTime}")
                         break
+                    
+                    """
+                    Increase Packet size if okay (and was not decreased)
+                    """
+                    # Chunk size okay, can increase
                     if isMeasuring:
                         print("Chunk size fine")
-                        chunkSize +=1
-                        # Increase Chunk Size
-                        increaseFlag = True
+                        iChunkSize = chunkSize
+                        chunkSize += packetSizes[packetSizeIdx]
+                        packetSizeIdx += 1
                     break
 
                 except socket.timeout:
+                    endTime = time()
                     print("Timed out waiting for server")
+
+                    # Chunk Size too Big, decrease
                     if isMeasuring:
-                        print("Chunk size too big")
+                        if packetSizeIdx == 1:
+                            isMeasuring = False
+                        print("CHUNK SIZE TOO BIG")
                         idx-=chunkSize*queueSize        # resend previous packet
                         sequence_number -= queueSize
-                        chunkSize -=1                   # change chunksize to smaller value
-                        if increaseFlag:
-                            isMeasuring = False
+                        packetSizeIdx = 0
+                        decreaseFlag = True
+                        chunkSize = (chunkSize+iChunkSize)//2
                         break
+            
+            print(chunkSize)
+            print(iChunkSize)
 
 
-
-            print(ack)
+            print("ACK:\t" + ack)
             print(f"Time elapsed: {endTime-startTime}")
 
             received += 1
