@@ -33,7 +33,7 @@ def get_args():
     if args.a is None:
         # 209.97.169.245
         # 10.0.7.141
-        args.a = "209.97.169.245"
+        args.a = "10.0.7.141"
     if args.s is None:
         args.s = 9000
     if args.c is None:
@@ -99,6 +99,7 @@ def main():
     # Send Intent message to server
     intentMessage  =f"ID{uniqueID}"
     TxnID = send_intent(intentMessage, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
+    ProjectStart = time()
     print("TxnID: "+TxnID)
     print()
     if TxnID == "Existing alive transaction":
@@ -142,6 +143,7 @@ def main():
             print(f"Size:\t{chunkSize}")
             print("Packet:\t" + data)
             startTime = time()
+            print(f"Elpsed:\t{startTime - ProjectStart}")
             udp_send(data, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
             queue+=1
             idx+=chunkSize
