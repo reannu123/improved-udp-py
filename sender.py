@@ -1,7 +1,11 @@
 # Create a transport protocol on top of UDP that reads from a file and sends the contents of the file to the client.
 import socket
 import argparse
-from time import sleep
+from time import sleep,time
+import hashlib
+
+def compute_checksum(packet):
+    return hashlib.md5(packet.encode('utf-8')).hexdigest()
 
 
 def udp_receive(clientSock):
@@ -48,12 +52,20 @@ def read_file(file_name):
         return None
 
 
+def write_file(file_name, message):
+    with open(file_name, 'w') as f:
+        f.write(message)
+
 def send_intent(intentMessage, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO):
     # Receive TxnID (accept message from server)
     while(True):
         try:
             udp_send(intentMessage, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
+            # Measure the time it takes to receive the ACK
+            start = time()
             TxnID = udp_receive(clientSock)
+            end = time()
+            print(f"Time elapsed: {end-start}")
             return TxnID
         except socket.timeout:
             print("Timed out waiting for server")
@@ -86,38 +98,64 @@ def main():
     intentMessage  =f"ID{uniqueID}"
     TxnID = send_intent(intentMessage, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
     print("TxnID: "+TxnID)
+    if TxnID == "Existing alive transaction":
+        TxnID = read_file(f"txnID.txt")
+    else:
+        write_file(f"txnID.txt", TxnID)
+
 
 
     """
     Send Packets
-    # """
-    # sequence_number = 0
-    # i = 0
-    # increment = 50
-    # while i < len(message):
-    #     # Determine data parameters: submessage, isLast, seqNum
-    #     submessage = message[i:i+increment]
-    #     sequence_number = 0 if sequence_number == 10000000 else sequence_number
-    #     isLast = 0 if i+increment < len(message) else 1
+    """
+    sequence_number = 0
+    i = 0
+    increment = 14
+    queueSize = 5
+    queue = 0
+    while i < len(message):
+        """
+        Sending Loop
+        """
         
-    #     # Begin sending message 
-    #     data = f"ID{uniqueID}SN{str(sequence_number).zfill(7)}TXN{TxnID}LAST{isLast}{submessage}"
-    #     udp_send(data, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
-    #     sleep(0.1)
-    #     """
-    #     Receive ACK
-    #     """
-    #     # Receive ACK
-    #     while(True):
-    #         try:
-    #             ack = udp_receive(clientSock)
-    #             break
-    #         except socket.timeout:
-    #             print("Timed out waiting for server")
-        
-    #     print(ack)
-    #     sequence_number += 1
-    #     i+=increment
+        while queue<queueSize:
+            # Determine data parameters: submessage, isLast, seqNum
+            submessage = message[i:i+increment]
+            sequence_number = 0 if sequence_number == 10000000 else sequence_number
+            isLast = 0 if i+increment < len(message) else 1
+            
+            # Begin sending message 
+            data = f"ID{uniqueID}SN{str(sequence_number).zfill(7)}TXN{TxnID}LAST{isLast}{submessage}"
+            print(data)
+            print("Checksum: "+compute_checksum(data))
+            udp_send(data, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
+            queue+=1
+            print(queue)
+            i+=increment
+            sequence_number += 1
+            sleep(0.3)
+
+        """
+        Receive ACK
+        """
+        received = 0
+        while received < queueSize:
+            # Receiving Loop
+            start = time()
+            while(True):
+                try:
+                    
+                    ack = udp_receive(clientSock)
+                    
+                    
+                    break
+                except socket.timeout:
+                    print("Timed out waiting for server")
+            end = time()
+            print(f"Time elapsed: {end-start}")
+            print(ack)
+            received += 1
+            queue = 0
         
 
 
