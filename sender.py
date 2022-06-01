@@ -74,7 +74,7 @@ def send_intent(intentMessage, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO):
 def main():
     args = get_args()
 
-    #! Set variables from args (UNCOMMENT FOR TESTING)
+    # Set variables from args
     UDP_IP_ADDRESS = args.a
     UDP_PORT_NO = int(args.s)
     uniqueID = args.i
@@ -98,8 +98,10 @@ def main():
     intentMessage  =f"ID{uniqueID}"
     TxnID = send_intent(intentMessage, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
     print("TxnID: "+TxnID)
+    print()
     if TxnID == "Existing alive transaction":
         TxnID = read_file(f"txnID.txt")
+        return
     else:
         write_file(f"txnID.txt", TxnID)
 
@@ -109,55 +111,86 @@ def main():
     Send Packets
     """
     sequence_number = 0
-    i = 0                       # Message index
-    increment = 15              # Anticipate accepted increment size
-    queueSize = 2               # Anticipate queue size
+    idx = 0                       # Message index
+    chunkSize = 1               # Anticipate accepted increment size
+    queueSize = 1               # Anticipate queue size
     queue = 0
 
-    while i < len(message):
+    isProcessing = True
+    isMeasuring = False
+    increaseFlag = False
+    dataDict = {}
+    maxTimeout = 0
+    while idx < len(message):
         """
         Sending Loop
         """
-        
+        startTime = 0
+
         while queue<queueSize:
             # Determine data parameters: submessage, isLast, seqNum
-            submessage = message[i:i+increment]
+            submessage = message[idx:idx+chunkSize]
             sequence_number = 0 if sequence_number == 10000000 else sequence_number
-            isLast = 0 if i+increment < len(message) else 1
+            isLast = 0 if idx+chunkSize < len(message) else 1
             
             # Begin sending message 
             data = f"ID{uniqueID}SN{str(sequence_number).zfill(7)}TXN{TxnID}LAST{isLast}{submessage}"
+            dataDict[sequence_number] = data
             print(data)
-            print("Checksum: "+compute_checksum(data))
-            udp_send(data, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
+            startTime = time()
+            udp_send(dataDict[sequence_number], clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
             queue+=1
-            print(queue)
-            i+=increment
+            idx+=chunkSize
             sequence_number += 1
-            sleep(0.3)
+
 
         """
         Receive ACK
         """
         received = 0
-        while received < queueSize:
+        receiveSize = queueSize
+        while received < receiveSize:
+            fail = False
             # Receiving Loop
-            start = time()
             while(True):
                 try:
-                    
                     ack = udp_receive(clientSock)
-                    
-                    
+                    endTime = time()
+                    if isProcessing:
+                        
+                        isProcessing = False
+                        isMeasuring = True
+                        clientSock.settimeout(endTime-startTime+1)
+                        chunkSize = 30
+                        queueSize = 1
+                        print(f"Time elapsed: {endTime-startTime}")
+                        break
+                    if isMeasuring:
+                        print("Chunk size fine")
+                        chunkSize +=1
+                        # Increase Chunk Size
+                        increaseFlag = True
                     break
+
                 except socket.timeout:
                     print("Timed out waiting for server")
-            end = time()
-            print(f"Time elapsed: {end-start}")
+                    if isMeasuring:
+                        print("Chunk size too big")
+                        idx-=chunkSize*queueSize        # resend previous packet
+                        sequence_number -= queueSize
+                        chunkSize -=1                   # change chunksize to smaller value
+                        if increaseFlag:
+                            isMeasuring = False
+                        break
+
+
+
             print(ack)
+            print(f"Time elapsed: {endTime-startTime}")
+
             received += 1
             queue = 0
-        
+            print()
 
 
 
