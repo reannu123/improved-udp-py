@@ -4,9 +4,9 @@ import argparse
 from time import sleep
 
 
-def udp_receive(serverSock):
+def udp_receive(clientSock):
     rcvd = ''
-    data, addr = serverSock.recvfrom(1024)
+    data, addr = clientSock.recvfrom(1024)
     if len(data) > 0:
         rcvd = data.decode()
     return rcvd
@@ -21,17 +21,17 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", help="File name")
     parser.add_argument("-a", help="IP address")
-    parser.add_argument("-s", help="Sender port number")
-    parser.add_argument("-c", help="Receiver port number")
+    parser.add_argument("-s", help="Receiver port number")
+    parser.add_argument("-c", help="Sender port number")
     parser.add_argument("-i", help="Unique ID")
     args = parser.parse_args()
 
     if args.a is None:
-        args.a = "209.97.169.245"
+        args.a = "10.0.7.141"
     if args.s is None:
-        args.s = 6789
+        args.s = 9000
     if args.c is None:
-        args.c = 6789
+        args.c = 6706
     if args.i is None:
         args.i = "c3563823"
     if args.f is None:
@@ -73,7 +73,7 @@ def main():
     # Initialize UDP connection
     clientSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     clientSock.bind(('',senderPort))
-    clientSock.settimeout(1)
+    clientSock.settimeout(5)
 
     # Read from file named "{uniqueID}.txt" and store to message
     message = read_file(fileName)
