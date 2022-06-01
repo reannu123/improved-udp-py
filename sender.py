@@ -33,7 +33,7 @@ def get_args():
     if args.a is None:
         # 209.97.169.245
         # 10.0.7.141
-        args.a = "209.97.169.245"
+        args.a = "10.0.7.141"
     if args.s is None:
         args.s = 9000
     if args.c is None:
@@ -115,7 +115,7 @@ def main():
     """
     sequence_number = 0
     idx = 0                       # Message index
-    chunkSize = 5               # Anticipate accepted increment size
+    chunkSize = 15               # Anticipate accepted increment size
     queueSize = 1               # Anticipate queue size
     queue = 0
     
@@ -124,13 +124,17 @@ def main():
     increaseFlag = False
     decreaseFlag = False
     packetSizes = [1,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76]
+    # packetSizes = [1,2,4,8,16,32,64,128]
     packetSizeIdx = 0
     minWrongSize = 99999
+
+    timeOuts = []
+    startTime = 0
     while idx < len(message):
         """
         Sending Loop
         """
-        startTime = 0
+        
 
         while queue<queueSize:
             # Determine data parameters: submessage, isLast, seqNum
@@ -162,7 +166,8 @@ def main():
                 try:
                     ack = udp_receive(clientSock)
                     endTime = time()
-
+                    
+                    
                     """ 
                     Experimental packet: 
                         -begin measuring
@@ -172,9 +177,10 @@ def main():
                     """
                     if sequence_number == 1:
                         isMeasuring = True
-                        clientSock.settimeout(endTime-startTime+1)
+                        diff = endTime-startTime
+                        clientSock.settimeout(diff+1)
                         iChunkSize = chunkSize
-                        chunkSize = 30
+                        chunkSize = 35
                         queueSize = 1
                         print(f"Time elapsed: {endTime-startTime}")
                         break
@@ -203,9 +209,10 @@ def main():
                 except socket.timeout:
                     endTime = time()
                     print("Timed out waiting for server")
-                    minWrongSize = min(minWrongSize, chunkSize)
+                    
                     # Chunk Size too Big, decrease
                     if isMeasuring:
+                        minWrongSize = min(minWrongSize, chunkSize)
                         if packetSizeIdx == 1:
                             isMeasuring = False
                         print("CHUNK SIZE TOO BIG")
@@ -226,7 +233,7 @@ def main():
             received += 1
             queue = 0
             print()
-
+    print("TOTAL TIME: "+str(time()-ProjectStart))
 
 
 
