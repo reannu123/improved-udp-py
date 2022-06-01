@@ -109,10 +109,11 @@ def main():
     Send Packets
     """
     sequence_number = 0
-    i = 0
-    increment = 14
-    queueSize = 5
+    i = 0                       # Message index
+    increment = 15              # Anticipate accepted increment size
+    queueSize = 2               # Anticipate queue size
     queue = 0
+
     while i < len(message):
         """
         Sending Loop
