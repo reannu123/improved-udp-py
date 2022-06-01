@@ -33,7 +33,7 @@ def get_args():
     if args.a is None:
         # 209.97.169.245
         # 10.0.7.141
-        args.a = "10.0.7.141"
+        args.a = "209.97.169.245"
     if args.s is None:
         args.s = 9000
     if args.c is None:
@@ -125,6 +125,7 @@ def main():
     decreaseFlag = False
     packetSizes = [1,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76]
     packetSizeIdx = 0
+    minWrongSize = 99999
     while idx < len(message):
         """
         Sending Loop
@@ -185,14 +186,24 @@ def main():
                     if isMeasuring:
                         print("Chunk size fine")
                         iChunkSize = chunkSize
-                        chunkSize += packetSizes[packetSizeIdx]
+                        newChunkSize = chunkSize + packetSizes[packetSizeIdx]
+                        print(minWrongSize)
+                        print(newChunkSize)
+                        while newChunkSize >=minWrongSize:
+                            if packetSizeIdx == 0:
+                                newChunkSize = chunkSize
+                                isMeasuring = False
+                                break
+                            packetSizeIdx-=1
+                            newChunkSize = chunkSize + packetSizes[packetSizeIdx]
+                        chunkSize = newChunkSize
                         packetSizeIdx += 1
                     break
 
                 except socket.timeout:
                     endTime = time()
                     print("Timed out waiting for server")
-
+                    minWrongSize = min(minWrongSize, chunkSize)
                     # Chunk Size too Big, decrease
                     if isMeasuring:
                         if packetSizeIdx == 1:
