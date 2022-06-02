@@ -149,14 +149,14 @@ def main():
             submessage = message[idx:idx+chunkSize]
             sequence_number = 0 if sequence_number == 10000000 else sequence_number
             isLast = 0 if idx+chunkSize < len(message) else 1
-
+            print(f"                                  PACKET {sequence_number}                      ")
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             # Begin sending message 
             data = f"ID{uniqueID}SN{str(sequence_number).zfill(7)}TXN{TxnID}LAST{isLast}{submessage}"
-            print(f"Sqnc:\t{sequence_number}")
-            print(f"Size:\t{chunkSize}")
-            print("Packet:\t" + data)
+            print(f"Sqnc:\t\t{sequence_number}")
+            print(f"Size:\t\t{chunkSize}")
+            print("Packet:\t\t" + data)
             startTime = time()
-            print(f"Elpsed:\t{startTime - ProjectStart}")
             udp_send(data, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
             queue+=1
             idx+=chunkSize
@@ -190,7 +190,6 @@ def main():
                         iChunkSize = chunkSize
                         chunkSize = estimate_chunk_size(len(message), diff)
                         queueSize = 1
-                        print(f"Time elapsed: {endTime-startTime}")
                         break
                     
                     """
@@ -198,7 +197,7 @@ def main():
                     """
                     # Chunk size okay, can increase
                     if isMeasuring:
-                        print("Chunk size fine")
+                        print("\nMEASURING: \tChunk size fine\n")
                         iChunkSize = chunkSize
                         newChunkSize = chunkSize + packetSizes[packetSizeIdx]
                         while newChunkSize >=minWrongSize:
@@ -214,36 +213,41 @@ def main():
 
                 except socket.timeout:
                     endTime = time()
-                    print("Timed out waiting for server")
+                    print("~~~~Timed out waiting for server~~~~")
                     
                     # Chunk Size too Big, decrease
                     if isMeasuring:
                         minWrongSize = min(minWrongSize, chunkSize)
                         if packetSizeIdx == 1:
                             isMeasuring = False
-                        print("CHUNK SIZE TOO BIG")
+                        print("\nMEASURING: \tCHUNK SIZE TOO BIG\n")
                         idx-=chunkSize*queueSize        # resend previous packet
                         sequence_number -= queueSize
                         packetSizeIdx = 0
                         decreaseFlag = True
-                        chunkSize = (chunkSize+iChunkSize)//2
                         if sequence_number == 1:
-                            chunkSize += chunkSize//2
+                            chunkSize -= chunkSize//7
+                        else:
+                            chunkSize = (chunkSize+iChunkSize)//2
+                        
                         break
             
-            print(chunkSize)
-            print(iChunkSize)
-
-
-            print("ACK:\t" + ack)
-            print(f"Time elapsed: {endTime-startTime}")
-
+            print(f"Rcv Time: \t{endTime-startTime}")
+            print("ACK:\t\t" + ack)
+            print(f"Elapsed:\t{startTime - ProjectStart}")
+            remainingPayloadSize = len(message) - idx
+            print("Remain: \t" + str(max(0,remainingPayloadSize)))
             received += 1
             queue = 0
-            print()
-    print("Average Time: " + str(sum(timeOuts)/len(timeOuts)))
-    print("TOTAL TIME: "+str(time()-ProjectStart))
-    print("TxnID: "+TxnID)
+            print("--------------------------------------------------------------------------------")
+
+    # Print Final Transaction Metrics
+    print()
+    print("TOTAL TIME: \t"+str(time()-ProjectStart))
+    print("Ave Proc Time: \t" + str(sum(timeOuts)/len(timeOuts)))
+    print("TxnID: \t\t"+TxnID)
+    print("Max Size: \t"+str(chunkSize))
+    print("Payload Size: \t"+str(len(message)))
 
 
 
