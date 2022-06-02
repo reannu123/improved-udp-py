@@ -33,7 +33,7 @@ def get_args():
     if args.a is None:
         # 209.97.169.245
         # 10.0.7.141
-        args.a = "209.97.169.245"
+        args.a = "10.0.7.141"
     if args.s is None:
         args.s = 9000
     if args.c is None:
@@ -143,7 +143,7 @@ def main():
     """
     sequence_number = 0
     idx = 0                       # Message index
-    chunkSize = 20                # Anticipate accepted increment size
+    chunkSize = 10                # Anticipate accepted increment size
     queueSize = 1                 # Anticipate queue size
     queue = 0
     
@@ -254,7 +254,7 @@ def main():
                         packetSizeIdx = 0
                         decreaseFlag = True
                         if sequence_number == 1:
-                            chunkSize -= chunkSize//6
+                            chunkSize -= chunkSize//4
                         else:
                             chunkSize = (chunkSize+iChunkSize)//2
                         
@@ -267,10 +267,11 @@ def main():
             print("Remain Bytes: \t" + str(max(0,remPayload)) + " bytes")
             print("Remain Pckts: \t" + str(max(0,(remPayload//chunkSize)+1)) + " packets")
             print(chunkSize)
-            succeed120 = willSucceed(ProjectStart, 120,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
-            succeed95 = willSucceed(ProjectStart, 95,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
+            succeed120 = willSucceed(ProjectStart, 119,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
+            succeed95 = willSucceed(ProjectStart, 94,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
             print("Succeed 120: \t" + str(succeed120))
             print("Succeed 95: \t" + str(succeed95))
+            print("TxnID:\t\t" + TxnID)
 
             received += 1
             queue = 0
