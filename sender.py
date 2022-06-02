@@ -58,6 +58,15 @@ def write_file(file_name, message):
     with open(file_name, 'w') as f:
         f.write(message)
 
+
+# Function for estimating the size based on procTime and payloadSize
+def estimate_chunk_size (payloadSize, procTime):
+    expectedTime = 85
+    numofPackets = int(expectedTime/procTime)
+    chunkSize = int(payloadSize/numofPackets)
+    return chunkSize
+
+
 def send_intent(intentMessage, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO):
     # Receive TxnID (accept message from server)
     while(True):
@@ -72,13 +81,15 @@ def send_intent(intentMessage, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO):
         except socket.timeout:
             print("Timed out waiting for server")
 
+# Function for checking whether it is possible to to succeed
+def willSucceed(ProjectStart, timeOut,remPayload, chunkSize, procTime):
+    timeLeft = timeOut - (time() - ProjectStart)
+    packets_left = remPayload/chunkSize
+    neededTime = packets_left * procTime
+    if timeLeft > neededTime:
+        return True
+    return False
 
-def estimate_chunk_size (file_size, timeout):
-    expectedTime = 85
-    numofPackets = int(expectedTime/timeout)
-    chunkSize = int(file_size/numofPackets)
-    # Calculate the chunk size
-    return chunkSize
 
 def main():
     args = get_args()
@@ -122,7 +133,7 @@ def main():
     """
     sequence_number = 0
     idx = 0                       # Message index
-    chunkSize = 1               # Anticipate accepted increment size
+    chunkSize = 20               # Anticipate accepted increment size
     queueSize = 1               # Anticipate queue size
     queue = 0
     
@@ -155,7 +166,7 @@ def main():
             data = f"ID{uniqueID}SN{str(sequence_number).zfill(7)}TXN{TxnID}LAST{isLast}{submessage}"
             print(f"Sqnc:\t\t{sequence_number}")
             print(f"Size:\t\t{chunkSize}")
-            print("Packet:\t\t" + data)
+            print("Message:\t" + submessage)
             startTime = time()
             udp_send(data, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
             queue+=1
@@ -214,7 +225,8 @@ def main():
                 except socket.timeout:
                     endTime = time()
                     print("~~~~Timed out waiting for server~~~~")
-                    
+                    if sequence_number == 1:
+                        chunkSize = chunkSize//2
                     # Chunk Size too Big, decrease
                     if isMeasuring:
                         minWrongSize = min(minWrongSize, chunkSize)
@@ -231,12 +243,14 @@ def main():
                             chunkSize = (chunkSize+iChunkSize)//2
                         
                         break
-            
-            print(f"Rcv Time: \t{endTime-startTime}")
-            print("ACK:\t\t" + ack)
-            print(f"Elapsed:\t{startTime - ProjectStart}")
+
+            print(f"Proc Time: \t{round(endTime-startTime,2)} seconds")
+            print("ACK:\t\t" + ack[21:])
+            print(f"Elapsed:\t{round(startTime - ProjectStart,2)} seconds")
             remainingPayloadSize = len(message) - idx
-            print("Remain: \t" + str(max(0,remainingPayloadSize)))
+            print("Remain: \t" + str(max(0,remainingPayloadSize)) + " bytes")
+            print("Succeed 120: \t" + str(willSucceed(ProjectStart, 120,remainingPayloadSize, chunkSize, sum(timeOuts)/len(timeOuts))))
+            print("Succeed 95: \t" + str(willSucceed(ProjectStart, 95,remainingPayloadSize, chunkSize, sum(timeOuts)/len(timeOuts))))
             received += 1
             queue = 0
             print("--------------------------------------------------------------------------------")
