@@ -73,6 +73,13 @@ def send_intent(intentMessage, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO):
             print("Timed out waiting for server")
 
 
+def estimate_chunk_size (file_size, timeout):
+    expectedTime = 85
+    numofPackets = int(expectedTime/timeout)
+    chunkSize = int(file_size/numofPackets)
+    # Calculate the chunk size
+    return chunkSize
+
 def main():
     args = get_args()
 
@@ -115,7 +122,7 @@ def main():
     """
     sequence_number = 0
     idx = 0                       # Message index
-    chunkSize = 15               # Anticipate accepted increment size
+    chunkSize = 1               # Anticipate accepted increment size
     queueSize = 1               # Anticipate queue size
     queue = 0
     
@@ -124,6 +131,7 @@ def main():
     increaseFlag = False
     decreaseFlag = False
     packetSizes = [1,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76]
+    packetSizes = [i for i in range(1,75)]
     # packetSizes = [1,2,4,8,16,32,64,128]
     packetSizeIdx = 0
     minWrongSize = 99999
@@ -141,7 +149,7 @@ def main():
             submessage = message[idx:idx+chunkSize]
             sequence_number = 0 if sequence_number == 10000000 else sequence_number
             isLast = 0 if idx+chunkSize < len(message) else 1
-            
+
             # Begin sending message 
             data = f"ID{uniqueID}SN{str(sequence_number).zfill(7)}TXN{TxnID}LAST{isLast}{submessage}"
             print(f"Sqnc:\t{sequence_number}")
@@ -166,7 +174,8 @@ def main():
                 try:
                     ack = udp_receive(clientSock)
                     endTime = time()
-                    
+                    diff = endTime-startTime
+                    timeOuts.append(diff)
                     
                     """ 
                     Experimental packet: 
@@ -177,10 +186,9 @@ def main():
                     """
                     if sequence_number == 1:
                         isMeasuring = True
-                        diff = endTime-startTime
                         clientSock.settimeout(diff+1)
                         iChunkSize = chunkSize
-                        chunkSize = 35
+                        chunkSize = estimate_chunk_size(len(message), diff)
                         queueSize = 1
                         print(f"Time elapsed: {endTime-startTime}")
                         break
@@ -193,8 +201,6 @@ def main():
                         print("Chunk size fine")
                         iChunkSize = chunkSize
                         newChunkSize = chunkSize + packetSizes[packetSizeIdx]
-                        print(minWrongSize)
-                        print(newChunkSize)
                         while newChunkSize >=minWrongSize:
                             if packetSizeIdx == 0:
                                 newChunkSize = chunkSize
@@ -221,6 +227,8 @@ def main():
                         packetSizeIdx = 0
                         decreaseFlag = True
                         chunkSize = (chunkSize+iChunkSize)//2
+                        if sequence_number == 1:
+                            chunkSize += chunkSize//2
                         break
             
             print(chunkSize)
@@ -233,8 +241,9 @@ def main():
             received += 1
             queue = 0
             print()
+    print("Average Time: " + str(sum(timeOuts)/len(timeOuts)))
     print("TOTAL TIME: "+str(time()-ProjectStart))
-
+    print("TxnID: "+TxnID)
 
 
 
