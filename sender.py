@@ -61,7 +61,7 @@ def write_file(file_name, message):
 
 # Function for estimating the size based on procTime and payloadSize
 def estimate_chunk_size (payloadSize, procTime):
-    expectedTime = 85
+    expectedTime = 100
     numofPackets = int(expectedTime/procTime)
     chunkSize = int(payloadSize/numofPackets)
     return chunkSize
@@ -238,7 +238,7 @@ def main():
                         packetSizeIdx = 0
                         decreaseFlag = True
                         if sequence_number == 1:
-                            chunkSize -= chunkSize//7
+                            chunkSize -= chunkSize//5
                         else:
                             chunkSize = (chunkSize+iChunkSize)//2
                         
@@ -247,10 +247,10 @@ def main():
             print(f"Proc Time: \t{round(endTime-startTime,2)} seconds")
             print("ACK:\t\t" + ack[21:])
             print(f"Elapsed:\t{round(startTime - ProjectStart,2)} seconds")
-            remainingPayloadSize = len(message) - idx
-            print("Remain: \t" + str(max(0,remainingPayloadSize)) + " bytes")
-            print("Succeed 120: \t" + str(willSucceed(ProjectStart, 120,remainingPayloadSize, chunkSize, sum(timeOuts)/len(timeOuts))))
-            print("Succeed 95: \t" + str(willSucceed(ProjectStart, 95,remainingPayloadSize, chunkSize, sum(timeOuts)/len(timeOuts))))
+            remPayload = len(message) - idx
+            print("Remain: \t" + str(max(0,remPayload)) + " bytes")
+            print("Succeed 120: \t" + str(willSucceed(ProjectStart, 120,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))))
+            print("Succeed 95: \t" + str(willSucceed(ProjectStart, 95,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))))
             received += 1
             queue = 0
             print("--------------------------------------------------------------------------------")
