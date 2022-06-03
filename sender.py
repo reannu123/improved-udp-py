@@ -158,7 +158,7 @@ def main():
     isMeasuring = False
 
     # packetSizes = [1,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76]
-    packetSizes = [i for i in range(1,75)]
+    packetSizes = [1 for i in range(1,75)]
     # packetSizes = [1,2,4,8,16,32,64,128]
     packetSizeIdx = 0
     minWrongSize = 99999
@@ -228,8 +228,10 @@ def main():
                     print(will95, needed1, left1)
                     will120, needed2, left2 = willSucceed(ProjectStart, 120,remPayload1, chunkSize, sum(timeOuts)/len(timeOuts))
                     print(will120, needed2, left2)
+                    will120 = False
+                    # if the time it takes to risk is greater than the difference between needed1 and left1, do not continue
                     # Chunk size okay, can increase
-                    if not will120:
+                    if not will120 and clientSock.gettimeout() < left1-needed1:
                         if isMeasuring:
                             printToFile(TxnID,"\nMEASURING: \tChunk size fine\n")
                             iChunkSize = chunkSize

@@ -9,5 +9,14 @@ def run_tshark():
     os.system(f"touch {file_name}.pcap")
     os.system(f"chmod o=rw {file_name}.pcap")
     os.system(f"sudo tshark -a duration:125 -w {file_name}.pcap")
+    txnId = read_file("txnID.txt")
+    os.system(f"mv {file_name}.pcap {txnId}.pcap")
+
+def read_file(file_name):
+    try:
+        with open(file_name, 'r') as f:
+            return f.read()
+    except FileNotFoundError:
+        return None
 
 run_tshark()
