@@ -39,7 +39,8 @@ def get_args():
     if args.a is None:
         # 209.97.169.245
         # 10.0.7.141
-        args.a = "10.0.7.141"
+        # 10.0.1.175
+        args.a = "10.0.1.175"
     if args.s is None:
         args.s = 9000
     if args.c is None:
