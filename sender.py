@@ -68,9 +68,14 @@ def write_file(file_name, message):
 
 # Function for estimating the size based on procTime and payloadSize
 def estimate_chunk_size (payloadSize, procTime):
-    expectedTime = 90
-    numofPackets = int(expectedTime/procTime)
+    print("Payload size: ", payloadSize)
+    print("Processing time: ", procTime)
+    expectedTime = 82
+    numofPackets = expectedTime/procTime
     chunkSize = int(payloadSize/numofPackets)
+    
+    print("Packet Nums: ",numofPackets)
+    print("Chunk Size: ",chunkSize)
     return chunkSize
 
 
@@ -196,6 +201,7 @@ def main():
         """
         received = 0
         receiveSize = queueSize
+        adjusted = False
         while received < receiveSize:
             # Receiving Loop
             while(True):
@@ -223,16 +229,18 @@ def main():
                     """
                     Increase Packet size if okay (and was not decreased)
                     """
-                    remPayload1 = len(message) - idx
-                    print(remPayload1)
-                    will95, needed1, left1 = willSucceed(ProjectStart, 95,remPayload1, chunkSize, sum(timeOuts)/len(timeOuts))
-                    print(will95, needed1, left1)
-                    will120, needed2, left2 = willSucceed(ProjectStart, 120,remPayload1, chunkSize, sum(timeOuts)/len(timeOuts))
-                    print(will120, needed2, left2)
-                    will120 = False
+                    remPayload = len(message) - idx
+                    will95, needed1, left1 = willSucceed(ProjectStart, 95,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
+                    will120, needed2, left2 = willSucceed(ProjectStart, 120,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
                     # if the time it takes to risk is greater than the difference between needed1 and left1, do not continue
                     # Chunk size okay, can increase
-                    if not will120 and clientSock.gettimeout() < left1-needed1:
+                    if left1-needed1 < clientSock.gettimeout() and not adjusted:
+                        print(not adjusted)
+                        print(left1-needed1 < clientSock.gettimeout())
+                        chunkSize+=1
+                        adjusted = True
+                    if not will120 and not will95:
+                        adjusted = True
                         if isMeasuring:
                             printToFile(TxnID,"\nMEASURING: \tChunk size fine\n")
                             iChunkSize = chunkSize
@@ -264,7 +272,7 @@ def main():
                         packetSizeIdx = 0
                         decreaseFlag = True
                         if sequence_number == 1:
-                            chunkSize -= chunkSize//4
+                            chunkSize -= chunkSize//6
                         else:
                             chunkSize = (chunkSize+iChunkSize)//2
                         
@@ -276,7 +284,7 @@ def main():
             printToFile(TxnID,f"Elapsed:\t{round(endTime - ProjectStart,2)} seconds")
             printToFile(TxnID,"Remain Bytes: \t" + str(max(0,remPayload)) + " bytes")
             printToFile(TxnID,"Remain Pckts: \t" + str(max(0,(remPayload//chunkSize)+1)) + " packets")
-            printToFile(TxnID,chunkSize)
+
             succeed120 = willSucceed(ProjectStart, 119,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
             succeed95 = willSucceed(ProjectStart, 94,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
             printToFile(TxnID,"Succeed 120: \t" + str(succeed120))
@@ -292,7 +300,7 @@ def main():
     printToFile(TxnID,"TOTAL TIME: \t"+str(time()-ProjectStart))
     printToFile(TxnID,"Ave Proc Time: \t" + str(sum(timeOuts)/len(timeOuts)))
     printToFile(TxnID,"TxnID: \t\t"+TxnID)
-    printToFile(TxnID,"Max Size: \t"+str(chunkSize))
+    printToFile(TxnID,"Final Size: \t"+str(chunkSize))
     printToFile(TxnID,"Payload Size: \t"+str(len(message)))
 
 
