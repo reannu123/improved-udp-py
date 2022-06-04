@@ -3,6 +3,7 @@ import socket
 import argparse
 from time import sleep,time
 import hashlib
+from dl_new_payload import dl_payload
 
 
 def printToFile(filename, message = ''):
@@ -66,11 +67,15 @@ def write_file(file_name, message):
         f.write(message)
 
 
-# Function for estimating the size based on procTime and payloadSize
+""" 
+
+Function for estimating the size based on procTime and payloadSize
+
+"""
 def estimate_chunk_size (payloadSize, procTime):
     print("Payload size: ", payloadSize)
     print("Processing time: ", procTime)
-    expectedTime = 82
+    expectedTime = 77
     numofPackets = expectedTime/procTime
     chunkSize = int(payloadSize/numofPackets)
     
@@ -147,7 +152,7 @@ def main():
     Send Intent Message
     """
     TxnID = getTxnID(clientSock, UDP_IP_ADDRESS, UDP_PORT_NO, uniqueID)
-    printToFile(TxnID,"Txn: " + TxnID)
+    printToFile("captures/"+TxnID,"Txn: " + TxnID)
     ProjectStart = time()
 
 
@@ -171,6 +176,7 @@ def main():
 
     timeOuts = []
     startTime = 0
+    adjusted = False
     while idx < len(message):
         """
         Sending Loop
@@ -182,13 +188,13 @@ def main():
             submessage = message[idx:idx+chunkSize]
             sequence_number = 0 if sequence_number == 10000000 else sequence_number
             isLast = 0 if idx+chunkSize < len(message) else 1
-            printToFile(TxnID,f"                                  PACKET {sequence_number}                      ")
-            printToFile(TxnID,"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            printToFile("captures/"+TxnID,f"                                  PACKET {sequence_number}")
+            printToFile("captures/"+TxnID,"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             # Begin sending message 
             data = f"ID{uniqueID}SN{str(sequence_number).zfill(7)}TXN{TxnID}LAST{isLast}{submessage}"
-            printToFile(TxnID,f"Sqnc:\t\t{sequence_number}")
-            printToFile(TxnID,f"Size:\t\t{chunkSize}")
-            printToFile(TxnID,"Message:\t" + submessage)
+            printToFile("captures/"+TxnID,f"Sqnc:\t\t{sequence_number}")
+            printToFile("captures/"+TxnID,f"Size:\t\t{chunkSize}")
+            printToFile("captures/"+TxnID,"Message:\t" + submessage)
             startTime = time()
             udp_send(data, clientSock, UDP_IP_ADDRESS, UDP_PORT_NO)
             queue+=1
@@ -201,7 +207,6 @@ def main():
         """
         received = 0
         receiveSize = queueSize
-        adjusted = False
         while received < receiveSize:
             # Receiving Loop
             while(True):
@@ -227,25 +232,25 @@ def main():
                         break
                     
                     """
-                    Increase Packet size if okay (and was not decreased)
+                    Increase Packet size if okay
                     """
                     remPayload = len(message) - idx
-                    will95, needed1, left1 = willSucceed(ProjectStart, 95,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
-                    will120, needed2, left2 = willSucceed(ProjectStart, 120,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
-                    # if the time it takes to risk is greater than the difference between needed1 and left1, do not continue
-                    # Chunk size okay, can increase
-                    if left1-needed1 < clientSock.gettimeout() and not adjusted:
-                        print(not adjusted)
-                        print(left1-needed1 < clientSock.gettimeout())
+                    will95, need95, remain95 = willSucceed(ProjectStart, 95,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
+                    will120, need120, remain120 = willSucceed(ProjectStart, 120,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
+
+                    # Anticipation for 95 seconds
+                    if remain95-need95 < clientSock.gettimeout() and isMeasuring and adjusted == False:
+                        print(adjusted)
+                        adjusted = True
+                        iChunkSize = chunkSize
                         chunkSize+=1
-                        adjusted = True
-                    if not will120 and not will95:
-                        adjusted = True
+
+                    if not will120:
                         if isMeasuring:
-                            printToFile(TxnID,"\nMEASURING: \tChunk size fine\n")
+                            printToFile("captures/"+TxnID,"\nMEASURING: \tChunk size fine\n")
                             iChunkSize = chunkSize
                             newChunkSize = chunkSize + packetSizes[packetSizeIdx]
-                            while newChunkSize >=minWrongSize:
+                            while newChunkSize >= minWrongSize:
                                 if packetSizeIdx == 0:
                                     newChunkSize = chunkSize
                                     isMeasuring = False
@@ -258,19 +263,17 @@ def main():
 
                 except socket.timeout:
                     endTime = time()
-                    printToFile(TxnID,"~~~~Timed out waiting for server~~~~")
+                    printToFile("captures/"+TxnID,"~~~~Timed out waiting for server~~~~")
                     if sequence_number == 1:
                         chunkSize = chunkSize//2
                     # Chunk Size too Big, decrease
                     if isMeasuring:
-                        minWrongSize = min(minWrongSize, chunkSize)
-                        if packetSizeIdx == 1:
-                            isMeasuring = False
-                        printToFile(TxnID,"\nMEASURING: \tCHUNK SIZE TOO BIG\n")
-                        idx-=chunkSize*queueSize        # resend previous packet
-                        sequence_number -= queueSize
+                        printToFile("captures/"+TxnID,"\nMEASURING: \tCHUNK SIZE TOO BIG\n")
+                        isMeasuring = False
+                        idx-=chunkSize       # resend previous packet
+                        sequence_number -= 1
                         packetSizeIdx = 0
-                        decreaseFlag = True
+
                         if sequence_number == 1:
                             chunkSize -= chunkSize//6
                         else:
@@ -278,33 +281,50 @@ def main():
                         
                         break
 
-            printToFile(TxnID,f"Proc Time: \t{round(endTime-startTime,2)} seconds")
-            printToFile(TxnID,"ACK:\t\t" + ack)
+            printToFile("captures/"+TxnID,f"Proc Time: \t{round(endTime-startTime,2)} seconds")
+            printToFile("captures/"+TxnID,"ACK:\t\t" + ack)
             remPayload = len(message) - idx
-            printToFile(TxnID,f"Elapsed:\t{round(endTime - ProjectStart,2)} seconds")
-            printToFile(TxnID,"Remain Bytes: \t" + str(max(0,remPayload)) + " bytes")
-            printToFile(TxnID,"Remain Pckts: \t" + str(max(0,(remPayload//chunkSize)+1)) + " packets")
+            printToFile("captures/"+TxnID,f"Elapsed:\t{round(endTime - ProjectStart,2)} seconds")
+            printToFile("captures/"+TxnID,"Remain Bytes: \t" + str(max(0,remPayload)) + " bytes")
+            printToFile("captures/"+TxnID,"Remain Pckts: \t" + str(max(0,(remPayload//chunkSize)+1)) + " packets")
 
             succeed120 = willSucceed(ProjectStart, 119,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
             succeed95 = willSucceed(ProjectStart, 94,remPayload, chunkSize, sum(timeOuts)/len(timeOuts))
-            printToFile(TxnID,"Succeed 120: \t" + str(succeed120))
-            printToFile(TxnID,"Succeed 95: \t" + str(succeed95))
-            printToFile(TxnID,"TxnID:\t\t" + TxnID)
+            printToFile("captures/"+TxnID,"Succeed 120: \t" + str(succeed120))
+            printToFile("captures/"+TxnID,"Succeed 95: \t" + str(succeed95))
+            printToFile("captures/"+TxnID,"TxnID:\t\t" + TxnID)
 
             received += 1
             queue = 0
-            printToFile(TxnID,"--------------------------------------------------------------------------------")
+            printToFile("captures/"+TxnID,"--------------------------------------------------------------------------------")
 
     # Print Final Transaction Metrics
-    printToFile(TxnID)
-    printToFile(TxnID,"TOTAL TIME: \t"+str(time()-ProjectStart))
-    printToFile(TxnID,"Ave Proc Time: \t" + str(sum(timeOuts)/len(timeOuts)))
-    printToFile(TxnID,"TxnID: \t\t"+TxnID)
-    printToFile(TxnID,"Final Size: \t"+str(chunkSize))
-    printToFile(TxnID,"Payload Size: \t"+str(len(message)))
+    printToFile("captures/"+TxnID)
+    printToFile("test/tests","TxnID: \t\t"+TxnID)
+    printToFile("captures/"+TxnID,"TOTAL TIME: \t"+str(time()-ProjectStart))
+    printToFile("captures/"+TxnID,"Ave Proc Time: \t" + str(sum(timeOuts)/len(timeOuts)))
+    printToFile("test/tests","Ave Proc Time: \t" + str(sum(timeOuts)/len(timeOuts)))
+    printToFile("captures/"+TxnID,"TxnID: \t\t"+TxnID)
+    printToFile("captures/"+TxnID,"Final Size: \t"+str(chunkSize))
+    printToFile("test/tests","Final Size: \t"+str(chunkSize))
+    printToFile("captures/"+TxnID,"Payload Size: \t"+str(len(message)))
+    printToFile("test/tests","Payload Size: \t"+str(len(message)))
+    printToFile("test/tests","Perfect Time: \t"+str((len(message)/chunkSize)*sum(timeOuts)/len(timeOuts)))
+    printToFile("test/tests","TOTAL TIME: \t"+str(time()-ProjectStart))
+    printToFile("test/tests","")
 
-
-
-
-
-main()
+timeLimit = 122
+while(True):
+    if read_file("capture.txt") =="Stop":
+        dl_payload("c3563823")
+        write_file("capture.txt", "Go")
+        start = time()
+        sleep(1)
+        print("\n\n\n\nNew payload downloaded")
+        main()
+        end = time()
+        while(end-start<timeLimit):
+            sleep(timeLimit-(end-start))
+            end = time()
+            print(end-start)
+            pass
