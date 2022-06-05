@@ -150,6 +150,7 @@ def estimate_chunk_size (payloadSize:int, procTime:float, expectedTime:int)->int
 
 
 def adjustChunkSize(adjusted:bool, isAdjusting:bool, procTimes:"list[float]", ProjectStart:float, remPayload:int, chunkSize:int, minWrongSize:int, prevChunkSize)->int:
+    
     """
     Adjust the chunk size based on the processing time of the packets
 
@@ -251,7 +252,6 @@ def startTransaction(receiverIP, receiverPort, senderID,senderPort, payloadName)
         
         # Determine data parameters: submessage, isLast, sequence number, etc.
         submessage = message[idx:idx+chunkSize]                                     # Slice the message to be sent per packet
-        remPayload = len(message) - idx                                             # Remaining payload
         sequence_number = 0 if sequence_number == 10000000 else sequence_number     # Reset the sequence number if it reaches 10000000
         isLast = 0 if idx+chunkSize < len(message) else 1                           # Set isLast to 1 if it is the last packet
 
@@ -265,16 +265,14 @@ def startTransaction(receiverIP, receiverPort, senderID,senderPort, payloadName)
         printToFile(f"captures/{TxnID}","Message:\t" + submessage)
 
         startTime = time()      # Mark the time of sending the packet (for measuring processing time)  
-        timeLeft95 = 95 - (time() - ProjectStart)       # Time left to 95 seconds
-        timeLeft120 = 120 - (time() - ProjectStart)     # Time left to 120 seconds      
 
 
         udp_send(packet, clientSock, receiverIP, receiverPort)              # Send the packet to the server
 
 
-        idx+=chunkSize          # Increment the index
-        sequence_number += 1    # Increment the sequence number
-        
+        idx+=chunkSize                      # Increment the index
+        sequence_number += 1                # Increment the sequence number
+        remPayload = len(message) - idx     # Remaining payload
 
 
 
@@ -298,7 +296,7 @@ def startTransaction(receiverIP, receiverPort, senderID,senderPort, payloadName)
                     isAdjusting = True                                          # Allow adjustment of packet sizes after this
                     clientSock.settimeout(diff+1)                               # Set the socket timeout to the processing time (+1 to avoid false positives)
                     prevChunkSize = chunkSize                                   # Set the previous chunk size to the current one
-                    chunkSize = estimate_chunk_size(len(message), diff, 77)     # Update the current one to the estimated chunk size
+                    chunkSize = estimate_chunk_size(len(message), diff, 79)     # Update the current one to the estimated chunk size
                     break
 
                 if isAdjusting:
@@ -335,6 +333,8 @@ def startTransaction(receiverIP, receiverPort, senderID,senderPort, payloadName)
         totalTime = round(endTime - ProjectStart, 2)                                        # Total time so far
         
         
+        timeLeft95 = 95 - (time() - ProjectStart)       # Time left to 95 seconds
+        timeLeft120 = 120 - (time() - ProjectStart)     # Time left to 120 seconds      
         packets_left = remPayload/chunkSize             # Number of packets left to send
         neededTime = packets_left * aveProcTime         # Time needed to send all remaining packets
         allowance95 = timeLeft95 - neededTime           # Time left to 95 after sending all remaining packets
