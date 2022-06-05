@@ -1,7 +1,6 @@
 import socket
 from time import time, sleep
 from tools import *
-import hashlib
 
 
 def udp_receive(clientSock: socket.socket)->str:

@@ -1,5 +1,4 @@
 # Create a transport protocol on top of UDP that reads from a file and sends the contents of the file to the client.
-import socket
 from newProtocol import *
 from tools import *
 import argparse
