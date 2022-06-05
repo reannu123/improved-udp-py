@@ -36,7 +36,8 @@ def printToFile(filename:str, message:str = '', printToScreen:bool = True) -> No
         with open(f"{filename}.txt", 'a') as f:                             # Open the file
             print(message,file=f)                                           # Print the message to the file
     except FileNotFoundError:                                           # If the file does not exist
-        print(f"Error printing to file. Directory {filename} may not exist")                                  # Print an error message
+        if not printToScreen:                                                   # If printToScreen is True
+            print(f"Error printing to file. Directory {filename} may not exist")      # Print an error message
 
 # Read a file
 def read_file(filename:str) -> Optional[str]:
