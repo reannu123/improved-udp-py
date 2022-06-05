@@ -29,7 +29,7 @@ def get_args()->argparse.Namespace:
 
 def main(): 
     args = get_args()                                           # Get the arguments
-    startTransaction(args.a, args.s, args.i, args.c, args.f)    # Start the transaction
+    startTransaction(args.a, int(args.s), args.i, int(args.c), args.f)    # Start the transaction
 
 
 
