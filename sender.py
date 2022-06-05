@@ -1,5 +1,4 @@
-from newProtocol import *
-from tools import *
+from newProtocol import startTransaction
 import argparse
 
 
