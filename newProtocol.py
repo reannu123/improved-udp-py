@@ -113,32 +113,6 @@ def dl_payload(uniqueID:str, vpc:int = 2)->bool:
     
 
 
-
-def willSucceed(timerStart:float, target:float, remPayload:int, chunkSize:int, procTime:float)->bool:
-    """
-    Check whether it is possible to succeed sending the remaining payload in
-    the specified time based on the current chunk size and processing time
-
-    Args:
-        - timerStart (float): start time of sending the payload
-        - target (float): the target duration of the transmission
-        - remPayload (int): remaining bytes of the payload
-        - chunkSize (int): number of bytes in a chunk
-        - procTime (float): processing time of a valid packet
-
-    Returns:
-        - bool: True if it is possible to achieve sending all packets within the target duration, 
-        False otherwise
-    """
-    timeLeft = target - (time() - timerStart)           # time left to send the payload
-    packets_left = remPayload/chunkSize                 # number of packets left to send
-    neededTime = packets_left * procTime                # time needed to send the remaining payload
-    if timeLeft > neededTime:                           # if there is enough time to send the remaining payload
-        return True
-    return False
-
-
-
 def start_UDP(senderPort:int)->socket.socket:
     """
     Create a UDP socket and bind it to the specified port
@@ -221,6 +195,7 @@ def adjustChunkSize(adjusted:bool, isAdjusting:bool, procTimes:"list[float]", Pr
         else:
             chunkSize+=1                        # Increase the chunk size by 1 otherwise
     return chunkSize, adjusted, prevChunkSize, isAdjusting
+
 
 
 def startTransaction(receiverIP, receiverPort, senderID,senderPort, payloadName):
@@ -355,8 +330,6 @@ def startTransaction(receiverIP, receiverPort, senderID,senderPort, payloadName)
 
 
         aveProcTime = sum(procTimes)/len(procTimes)                                         # Average processing time so far
-        succeed120 = willSucceed(ProjectStart, 120, remPayload, chunkSize, aveProcTime)     # Will succeed in 120 seconds
-        succeed95 = willSucceed(ProjectStart,   95, remPayload, chunkSize, aveProcTime)     # Will succeed in 95 seconds
         remBytes = max(0,remPayload)                                                        # Remaining bytes
         remPkts = max(0,(remPayload//chunkSize)+1)                                          # Remaining packets
         totalTime = round(endTime - ProjectStart, 2)                                        # Total time so far
@@ -366,7 +339,8 @@ def startTransaction(receiverIP, receiverPort, senderID,senderPort, payloadName)
         neededTime = packets_left * aveProcTime         # Time needed to send all remaining packets
         allowance95 = timeLeft95 - neededTime           # Time left to 95 after sending all remaining packets
         allowance120 = timeLeft120 - neededTime         # Time left to 120 after sending all remaining packets
-        
+        succeed95 = allowance95 > 0                      # Whether the time left is enough to send all remaining packets under 95
+        succeed120 = allowance120 > 0                    # Whether the time left is enough to send all remaining packets under 120
 
         printToFile(f"captures/{TxnID}",    f"TxnID:\t\t{TxnID}")                   # Just for logging
         printToFile(f"captures/{TxnID}",    f"Proc Time: \t{aveProcTime} seconds")
