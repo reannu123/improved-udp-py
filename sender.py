@@ -29,7 +29,6 @@ def get_args()->argparse.Namespace:
 
 def main(): 
     args = get_args()                                           # Get the arguments
-    dl_payload(args.i, vpc=2)                                   # Download a new payload and set the vpc (from where to download the payload)
     startTransaction(args.a, args.s, args.i, args.c, args.f)    # Start the transaction
 
 
