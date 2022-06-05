@@ -21,7 +21,7 @@ def udp_receive(clientSock: socket.socket)->str:
 
 
 
-def udp_send(message:str, clientSock:socket.socket, iadr:str, port:str)->None:
+def udp_send(message:str, clientSock:socket.socket, iadr:str, port:int)->None:
     """
     Send a message to the server
 
@@ -29,7 +29,7 @@ def udp_send(message:str, clientSock:socket.socket, iadr:str, port:str)->None:
         - message (str): message to be sent
         - clientSock (socket.socket): UDP socket
         - iadr (str): IP address of the server
-        - port (str): port number of the server
+        - port (int): port number of the server
 
     """
     packet = message.encode()                                       # encode the message
