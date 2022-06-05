@@ -1,5 +1,5 @@
 import socket
-from time import time, sleep
+from time import time
 from tools import *
 
 
@@ -34,24 +34,6 @@ def udp_send(message:str, clientSock:socket.socket, iadr:str, port:str)->None:
     """
     packet = message.encode()
     clientSock.sendto(packet, (iadr, port))
-
-
-
-def estimate_chunk_size (payloadSize:int, procTime:float, expectedTime:int)->int:
-    """
-    Estimate the required size of the chunk based on the payload size, processing time and expected time
-
-    Args:
-        - payloadSize: size of the payload
-        - procTime: processing time of a valid packet
-        - expectedTime: expected time
-
-    Returns: 
-        - int: size of the chunk
-    """
-    numofPackets = expectedTime/procTime
-    chunkSize = int(payloadSize/numofPackets)
-    return chunkSize
 
 
 
@@ -113,12 +95,12 @@ def getTxnID(clientSock:socket.socket, receiverIP:str, receiverPort:int, uniqueI
 
 
 
-def dl_payload(uniqueID:int, vpc:int = 2)->bool:
+def dl_payload(uniqueID:str, vpc:int = 2)->bool:
     """ Download the payload from the server based in given unique ID
 
     Args:
-        - uniqueID (int): the unique ID of the sender
-        - vpc (int): which server to connect to
+        - uniqueID (str): the unique ID of the sender
+        - vpc (int): which vpc to connect to
 
     Returns:
         - bool: return True if the payload is successfully downloaded, False otherwise
@@ -171,6 +153,24 @@ def start_UDP(senderPort:int)->socket.socket:
     clientSock.bind(('',senderPort))
     clientSock.settimeout(5)
     return clientSock
+
+
+
+def estimate_chunk_size (payloadSize:int, procTime:float, expectedTime:int)->int:
+    """
+    Estimate the required size of the chunk based on the payload size, processing time and expected time
+
+    Args:
+        - payloadSize: size of the payload
+        - procTime: processing time of a valid packet
+        - expectedTime: expected time
+
+    Returns: 
+        - int: size of the chunk
+    """
+    numofPackets = expectedTime/procTime
+    chunkSize = int(payloadSize/numofPackets)
+    return chunkSize
 
 
 

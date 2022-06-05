@@ -13,7 +13,7 @@ def get_args()->argparse.Namespace:
     parser.add_argument("-i", help="Unique ID")
     args = parser.parse_args()
     if args.a is None:
-        # Test server "209.97.169.245"
+        # VPC 1 "10.0.7.141"
         # VPC 2 "10.0.1.175"
         args.a = "10.0.1.175"
     if args.s is None:
@@ -29,7 +29,7 @@ def get_args()->argparse.Namespace:
 
 def main():
     args = get_args()
-    dl_payload("c3563823")
+    dl_payload("c3563823", vpc=2)
     startTransaction(args.a, args.s, args.i, args.c, args.f)
 
 main()

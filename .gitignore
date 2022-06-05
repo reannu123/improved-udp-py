@@ -10,3 +10,6 @@ newSender.py
 txnID.txt
 captures/0000100.txt
 test/tests.txt
+__pycache__/newProtocol.cpython-38.pyc
+__pycache__/tools.cpython-38.pyc
+c3563823.txt
