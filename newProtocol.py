@@ -296,7 +296,7 @@ def startTransaction(receiverIP, receiverPort, senderID,senderPort, payloadName)
                     isAdjusting = True                                          # Allow adjustment of packet sizes after this
                     clientSock.settimeout(diff+1)                               # Set the socket timeout to the processing time (+1 to avoid false positives)
                     prevChunkSize = chunkSize                                   # Set the previous chunk size to the current one
-                    chunkSize = estimate_chunk_size(len(message), diff, 79)     # Update the current one to the estimated chunk size
+                    chunkSize = estimate_chunk_size(len(message), diff, 77)     # Update the current one to the estimated chunk size
                     break
 
                 if isAdjusting:
