@@ -1,5 +1,7 @@
 from newProtocol import startTransaction
 import argparse
+from time import time, sleep
+from newProtocol import dl_payload
 
 
 def get_args()->argparse.Namespace:
@@ -32,4 +34,10 @@ def main():
 
 
 
-main()      # Run the main function
+for i in range(1,10):
+    dl_payload("c3563823", vpc=2)   
+    start = time()
+    main()
+    end = time()
+    if end-start<125:
+        sleep(125-end+start)

@@ -1,0 +1,42 @@
+
+TxnID: 		0001104
+
+TOTAL TIME: 	84.5270504951477
+Ave Proc Time: 	7.042691608270009
+Final Size: 	36
+Payload Size: 	396
+
+TxnID: 		0001106
+
+TOTAL TIME: 	83.122478723526
+Ave Proc Time: 	2.0520871663704896
+Final Size: 	50
+Payload Size: 	1874
+
+TxnID: 		0001108
+
+TOTAL TIME: 	86.35839033126831
+Ave Proc Time: 	3.049135764439901
+Final Size: 	60
+Payload Size: 	1499
+
+TxnID: 		0001109
+
+TOTAL TIME: 	86.21842432022095
+Ave Proc Time: 	5.011247590184212
+Final Size: 	26
+Payload Size: 	389
+
+TxnID: 		0001110
+
+TOTAL TIME: 	91.32757043838501
+Ave Proc Time: 	7.024704676408034
+Final Size: 	82
+Payload Size: 	910
+
+TxnID: 		0001112
+
+TOTAL TIME: 	88.35769534111023
+Ave Proc Time: 	8.031569914384322
+Final Size: 	15
+Payload Size: 	140
